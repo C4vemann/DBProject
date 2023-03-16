@@ -1,0 +1,601 @@
+Option Compare Database
+
+
+
+
+
+Private Sub DocNoCB_AfterUpdate()
+    Dim currentProjectNo As String
+    Dim ssql As String
+    Dim rst As DAO.Recordset
+    
+    Dim postfixList(999) As String
+    Dim countPFL As Integer
+    
+    Dim currentStrSplit() As String
+    Dim currentStrR As String
+    Dim currentStrPf As String
+    Dim gate1 As Boolean
+    Dim gate2 As Boolean
+    
+    Dim count As Integer
+    
+    
+    DocPostfixCB.RowSource = ""
+    
+    If IsNull(ProjectIdCB.value) Or IsNull(DocPrefixCB.value) Or IsNull(DocNoCB.value) Then
+        Exit Sub
+    End If
+    
+    ssql = "SELECT [DocNo] From [Master] WHERE [DocNo] LIKE '" & ProjectIdCB.value & "-" & DocPrefixCB.value & DocNoCB.value & "*'"
+    
+    Set rst = CurrentDb.OpenRecordset(ssql)
+    
+    With rst
+        'if there are 0 return records of the query then exit
+        If .BOF And .EOF Then
+            MsgBox ("No existent value")
+            Exit Sub
+        End If
+        
+        'read that it was good programming to do this
+        .MoveLast
+        .MoveFirst
+    
+        countPFL = 0
+        
+        While (Not .EOF)
+            currentStrSplit = Split(rst!DocNo, "-")
+            
+            If (UBound(currentStrSplit) - LBound(currentStrSplit) + 1 = 1) Then
+                gate = True
+                                
+                For Each Item In postfixList
+                    If Item = "" Then
+                        Exit For
+                    End If
+                    If Item = "000" Then
+                        gate = False
+                        Exit For
+                    End If
+                Next Item
+                If gate Then
+                    postfixList(countPFL) = "000"
+                    countPFL = countPFL + 1
+                End If
+            End If
+            
+            If (UBound(currentStrSplit) - LBound(currentStrSplit) + 1 = 2) Then
+                gate = True
+                
+                For Each Item In postfixList
+                    If Item = "" Then
+                        Exit For
+                    End If
+                    
+                    If Item = "000" Then
+                        gate = False
+                        Exit For
+                    End If
+                Next Item
+                
+                If gate Then
+                    postfixList(countPFL) = "000"
+                    countPFL = countPFL + 1
+                End If
+                
+            End If
+            
+            If (UBound(currentStrSplit) - LBound(currentStrSplit) + 1 = 3) Then
+                gate = True
+               
+                For Each Item In postfixList
+                    If Item = "" Then
+                        Exit For
+                    End If
+                    If Item = currentStrSplit(2) Then
+                        gate = False
+                        Exit For
+                    End If
+                Next Item
+                
+                If gate Then
+                    postfixList(countPFL) = currentStrSplit(2)
+                    countPFL = countPFL + 1
+                End If
+            End If
+            
+
+            
+            .MoveNext
+            
+        Wend
+        
+        .Close
+        
+    End With
+    
+    For count = 0 To countPFL
+        If postfixList(count) = "" Then
+            DocPostfixCB.value = postfixList(count - 1)
+            Exit For
+        End If
+        DocPostfixCB.AddItem postfixList(count)
+    Next count
+    
+    
+    Set rs = Nothing
+End Sub
+
+Private Sub GetNextDocumentNumber_Click()
+'    Dim rst As Recordset
+'    Dim strSQL As String
+'    Dim value() As String
+'    Dim temp As Integer
+'    Dim temp2 As String
+'    Dim temp3 As String
+'    Dim count As Integer
+'
+'    If IsNull(ProjectId_ComboBox.value) Then
+'        MsgBox ("Enter a valid Project Id")
+'        Exit Sub
+'    End If
+'
+'    strSQL = "SELECT [DocNo] From [Master] WHERE [DocNo] LIKE '" & ProjectId_ComboBox.value & "-*'"
+'
+'    Set rst = CurrentDb.OpenRecordset(strSQL)
+'
+'    If rst.BOF And rst.EOF Then
+'        DocNo.value = "00000"
+'        Exit Sub
+'    End If
+'
+'
+'    rst.MoveLast
+'    value = Split(rst!DocNo, "-")
+'
+'    temp = CInt(value(UBound(value)))
+'
+'    temp = temp + 1
+'
+'
+'    temp2 = CStr(temp)
+'
+'
+'    For i = LBound(value) + 1 To UBound(value) - 1
+'        temp3 = temp3 & value(i) & "-"
+'    Next i
+'
+'
+'    For counter = 0 To Len(value(UBound(value))) - Len(temp2) - 1
+'        temp3 = temp3 & "0"
+'    Next counter
+'
+'    temp3 = temp3 & temp2
+'    DocNo.value = temp3
+'
+'    rst.Close
+'
+'    Set rst = Nothing
+'
+'    Dim temp As String
+'    temp = DocPrefixCB.value
+'    Debug.Print temp
+'
+'    If IsNull(DocPrefixCB) Then
+'        Debug.Print "Null"
+'    Else
+'        'Debug.Print DocPrefixCB.value
+'    End If
+
+End Sub
+
+Private Sub InsertToMaster_Click()
+    
+    vProjectNo = ProjectId_ComboBox.value
+    vDocNo = DocNo.value
+    vDocType = DocType.value
+    vREV = REV.value
+    vTitle = Title.value
+    vSize = Size.value
+    vOriginator = Originator.value
+    vEngineer = Engineer.value
+    vReleaseDate = ReleaseDate.value
+    
+    vValue = vProjectNo & "-" & vDocNo
+    Debug.Print (vValue)
+    
+    If IsNull(vProjectNo) Or IsNull(vDocNo) Or IsNull(vDocType) Or IsNull(vREV) Or IsNull(vTitle) Or IsNull(vSize) Or IsNull(vOriginator) Or IsNull(vEngineer) Then
+        Debug.Print "Please Fill In All Fields Of The Form Other Than Release Date"
+    Else
+        If IsNull(vReleaseDate) Then
+            ssql = "INSERT INTO Master (DocNo, DocType, REV, Title, Size, Originator, Engineer) VALUES ('" & vValue & "','" & vDocType & "','" & vREV & "','" & vTitle & "','" & vSize & "','" & vOriginator & "','" & vEngineer & "')"
+            DoCmd.RunSQL ssql
+        Else
+            ssql = "INSERT INTO Master (DocNo, DocType, REV, Title, Size, Originator, Engineer, ReleaseDate) VALUES ('" & vValue & "','" & vDocType & "','" & vREV & "','" & vTitle & "','" & vSize & "','" & vOriginator & "','" & vEngineer & "',#" & vReleaseDate & "#)"
+            DoCmd.RunSQL ssql
+        End If
+        
+    End If
+        
+    Debug.Print vProjectNo
+    Debug.Print vDocNo
+    Debug.Print vDocType
+    Debug.Print vREV
+    Debug.Print vTitle
+    Debug.Print vSize
+    Debug.Print vOriginator
+    Debug.Print vEngineer
+    Debug.Print vReleaseDate
+    
+
+End Sub
+
+Private Sub DocPrefixCB_AfterUpdate()
+    Dim currentProjectNo As String
+    Dim ssql As String
+    Dim rst As DAO.Recordset
+    
+    Dim docNoList(999) As String
+    Dim countDNL As Integer
+    
+    Dim postfixList(999) As String
+    Dim countPFL As Integer
+    
+    Dim currentStrSplit() As String
+    Dim currentStrR As String
+    Dim currentStrPf As String
+    Dim gate1 As Boolean
+    Dim gate2 As Boolean
+    
+    Dim count As Integer
+    
+    DocNoCB.RowSource = ""
+    DocPostfixCB.RowSource = ""
+    
+    If IsNull(ProjectIdCB.value) Or IsNull(DocPrefixCB.value) Then
+        Exit Sub
+    End If
+    
+    ssql = "SELECT [DocNo] From [Master] WHERE [DocNo] LIKE '" & ProjectIdCB.value & "-" & DocPrefixCB.value & "*'"
+    
+    Set rst = CurrentDb.OpenRecordset(ssql)
+    
+    With rst
+        'if there are 0 return records of the query then exit
+        If .BOF And .EOF Then
+            MsgBox ("No existent value")
+            Exit Sub
+        End If
+        
+        'read that it was good programming to do this
+        .MoveLast
+        .MoveFirst
+        
+        countDNL = 0
+        countPFL = 0
+        
+        While (Not .EOF)
+            currentStrSplit = Split(rst!DocNo, "-")
+            
+            If (UBound(currentStrSplit) - LBound(currentStrSplit) + 1 = 1) Then
+                gate1 = True
+                gate2 = True
+                For Each Item In docNoList
+                    If Item = "" Then
+                        Exit For
+                    End If
+                    If Item = "000" Then
+                        gate1 = False
+                        Exit For
+                    End If
+                Next Item
+                If gate1 Then
+                    docNoList(countDNL) = "000"
+                    countDNL = coundDNL + 1
+                End If
+                
+                For Each Item In postfixList
+                    If Item = "" Then
+                        Exit For
+                    End If
+                    If Item = "000" Then
+                        gate2 = False
+                        Exit For
+                    End If
+                Next Item
+                If gate2 Then
+                    postfixList(countPFL) = "000"
+                    countPFL = countPFL + 1
+                End If
+            End If
+            
+            If (UBound(currentStrSplit) - LBound(currentStrSplit) + 1 = 2) Then
+                gate1 = True
+                gate2 = True
+                currentStrR = Right(currentStrSplit(1), 3)
+                
+                For Each Item In docNoList
+                    If Item = "" Then
+                        Exit For
+                    End If
+                    If Item = currentStrR Then
+                        gate1 = False
+                        Exit For
+                    End If
+                Next Item
+                
+                If gate1 Then
+                    docNoList(countDNL) = currentStrR
+                    countDNL = countDNL + 1
+                End If
+                
+                For Each Item In postfixList
+                    If Item = "" Then
+                        Exit For
+                    End If
+                    
+                    If Item = "000" Then
+                        gate2 = False
+                        Exit For
+                    End If
+                Next Item
+                
+                If gate2 Then
+                    postfixList(countPFL) = "000"
+                    countPFL = countPFL + 1
+                End If
+                
+            End If
+            
+            If (UBound(currentStrSplit) - LBound(currentStrSplit) + 1 = 3) Then
+                gate1 = True
+                gate2 = True
+                currentStrR = Right(currentStrSplit(1), 3)
+                currentStrPf = currentStrSplit(2)
+                For Each Item In docNoList
+                    If Item = "" Then
+                        Exit For
+                    End If
+                    If Item = currentStrR Then
+                        gate1 = False
+                        Exit For
+                    End If
+                Next Item
+                If gate1 Then
+                    docNoList(countDNL) = currentStrR
+                    countDNL = coundDNL + 1
+                End If
+                
+                For Each Item In postfixList
+                    If Item = "" Then
+                        Exit For
+                    End If
+                    If Item = currentStrPf Then
+                        gate2 = False
+                        Exit For
+                    End If
+                Next Item
+                If gate2 Then
+                    postfixList(countPFL) = currentStrPf
+                    countPFL = countPFL + 1
+                End If
+            End If
+            
+
+            
+            .MoveNext
+            
+        Wend
+        
+        .Close
+        
+    End With
+    
+    For count = 0 To countPFL
+        If postfixList(count) = "" Then
+            DocPostfixCB.value = postfixList(count - 1)
+            Exit For
+        End If
+        DocPostfixCB.AddItem postfixList(count)
+    Next count
+
+   For count = 0 To countDNL
+        If docNoList(count) = "" Then
+            DocNoCB.value = docNoList(count - 1)
+            Exit For
+        End If
+        DocNoCB.AddItem docNoList(count)
+    Next count
+    
+    
+    Set rs = Nothing
+    
+End Sub
+
+
+Private Sub ProjectIdCB_AfterUpdate()
+    Dim currentDocNo As String
+    Dim strSplit() As String
+    
+    Dim temp2 As String
+    Dim temp3 As String
+    
+    Dim docNoList() As String
+    Dim counter As Integer
+    Dim prefixList(99) As String
+    Dim countPreL As Integer
+    Dim postfixList(999) As String
+    Dim countPostL As Integer
+    Dim docList(999) As String
+    Dim countDL As Integer
+    
+    
+    Dim strSplit2 As String
+    
+    Dim rst As DAO.Recordset
+    
+    Dim ssql As String
+    Dim ssql2 As String
+    
+    
+    Dim intTemp As Integer
+    
+    Dim gate1 As Boolean
+    Dim gate2 As Boolean
+    
+    'clears the comboboxes values before putting new ones in
+    DocPrefixCB.RowSource = ""
+    DocNoCB.RowSource = ""
+    DocPostfixCB.RowSource = ""
+
+    'if projectId value is null exit sub
+    If IsNull(ProjectIdCB.value) Then
+        Exit Sub
+    End If
+    
+    'sql statement that is going to be queried
+    ssql = "SELECT [DocNo] From [Master] WHERE [DocNo] LIKE '" & ProjectIdCB.value & "-*'"
+    'open the table based on the previous sql
+    Set rst = CurrentDb.OpenRecordset(ssql)
+    
+    'with rst we are seperating out the prefix, docno, postfix into their respective arrays
+    'where we will use that data to fill in the combobox items
+    With rst
+        'initialize the counters for their respective arrays
+        counter = 1
+        counterPreL = 1
+        counterPostL = 1
+        counterDL = 1
+        
+        'if there are 0 return records of the query then exit
+        If .BOF And .EOF Then
+            MsgBox ("No existent value")
+            Exit Sub
+        End If
+        
+        'read that it was good programming to do this
+        .MoveLast
+        .MoveFirst
+
+        'initialize the docNoList
+        ReDim Preserve docNoList(1 To .RecordCount)
+        
+
+        'while reading the records from the query one by one
+        While (Not .EOF)
+            currentDocNo = rst!DocNo
+            
+            strSplit = Split(currentDocNo, "-")
+            
+            If (UBound(strSplit) - LBound(strSplit) + 1 = 1) Then
+                prefixList(countPreL) = "00"
+                countPreL = countPreL + 1
+                docList(countDL) = "000"
+                countDL = coundDL + 1
+                postfixList(countPostL) = "000"
+                countPostL = countPostL + 1
+            End If
+            
+            If (UBound(strSplit) - LBound(strSplit) + 1 = 2) Then
+                gate1 = True
+                gate2 = True
+                temp2 = Left(strSplit(1), 2)
+                
+                For Each Prefix In prefixList
+                    If Prefix = temp2 Then
+                        gate1 = False
+                    End If
+                Next Prefix
+                
+                If gate1 Then
+                    prefixList(countPreL) = temp2
+                    countPreL = countPreL + 1
+                End If
+                
+                docList(countDL) = Right(strSplit(1), 3)
+                countDL = countDL + 1
+                
+                For Each postfix In postfixList
+                    If postfix = "000" Then
+                        gate2 = False
+                    End If
+                Next postfix
+                
+                If gate2 Then
+                    postfixList(countPostL) = "000"
+                    countPostL = countPostL + 1
+                End If
+                
+            End If
+
+            If (UBound(strSplit) - LBound(strSplit) + 1 = 3) Then
+                gate1 = True
+                gate2 = True
+                temp2 = Left(strSplit(1), 2)
+                
+                For Each Prefix In prefixList
+                    If Prefix = temp2 Then
+                        gate1 = False
+                    End If
+                Next Prefix
+                
+                If gate1 Then
+                    prefixList(countPreL) = temp2
+                    countPreL = countPreL + 1
+                End If
+                
+                docList(countDL) = Right(strSplit(1), 3)
+                countDL = countDL + 1
+                
+                For Each postfix In postfixList
+                    If postfix = strSplit(2) Then
+                        gate2 = False
+                    End If
+                Next postfix
+                
+                If gate2 Then
+                    postfixList(countPostL) = strSplit(2)
+                    countPostL = countPostL + 1
+                End If
+                
+            End If
+
+            
+            
+            docNoList(counter) = rst!DocNo
+            counter = counter + 1
+            .MoveNext
+        Wend
+        
+        .Close
+    End With
+    
+    For count1 = 0 To countPreL
+        If prefixList(count1) = "" Then
+            DocPrefixCB.value = prefixList(count1 - 1)
+            Exit For
+        End If
+        DocPrefixCB.AddItem prefixList(count1)
+    Next count1
+    
+    For count1 = 0 To countPostL
+        If postfixList(count1) = "" Then
+            DocPostfixCB.value = postfixList(count1 - 1)
+            Exit For
+        End If
+        DocPostfixCB.AddItem postfixList(count1)
+    Next count1
+    
+   For count1 = 0 To countDL
+        If docList(count1) = "" Then
+            DocNoCB.value = docList(count1 - 1)
+            Exit For
+        End If
+        DocNoCB.AddItem docList(count1)
+    Next count1
+    
+    
+    Set rs = Nothing
+    
+End Sub
